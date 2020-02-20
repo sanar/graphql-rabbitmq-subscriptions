@@ -1,5 +1,7 @@
 # graphql-rabbitmq-subscriptions
 
+![Build](https://github.com/sanar/sanar-graphql-subscriptions/workflows/Node.js%20CI/badge.svg)
+
 This package implements the PusSubEngine Interface from the graphql-subscriptions package. 
 It allows you to connect your subscriptions manger to a rabbitmq Pub Sub mechanism to support 
 multiple subscription manager instances.
