@@ -7,3 +7,4 @@ const settings: IConsoleLoggerSettings = {
 };
 
 export const logger: Logger = ConsoleLogger.create('rabbitmq-subcscription', settings);
+

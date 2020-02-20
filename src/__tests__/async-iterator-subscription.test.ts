@@ -79,7 +79,6 @@ describe('GraphQL-JS asyncIterator', () => {
         // await r;
             setTimeout(() => {
                 pubsub.publish(FIRST_EVENT, { test: { file: true } });
-                
             }, 10);
         // return r;
     });
