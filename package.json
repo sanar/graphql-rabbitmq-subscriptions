@@ -31,7 +31,7 @@
     "build:prod": "tsc",
     "lint": "tslint ./src/**/*.ts",
     "watch": "tsc -w",
-    "prepublish": "npm run test"
+    "prepublishOnly": "npm run test"
   },
   "jest": {
     "testEnvironment": "node",
