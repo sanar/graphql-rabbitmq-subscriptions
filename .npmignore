@@ -1,6 +1,7 @@
-src
-node_modules
-typings
-tsconfig.json
-typings.json
-tslint.json
+node_modules/
+src/
+test
+typings/
+.npmignore
+.node-version
+.github
