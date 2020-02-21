@@ -3,6 +3,7 @@ import { isAsyncIterable } from 'iterall';
 import {
   parse,
   GraphQLSchema,
+  GraphQLObjectTypeConfig,
   GraphQLObjectType,
   GraphQLString,
 } from 'graphql';
@@ -22,7 +23,7 @@ function buildSchema(iterator, filterFn = defaultFilter) {
       fields: {
         testString: {
           type: GraphQLString,
-          resolve(_, args) {
+          resolve() {
             return 'works';
           },
         },
@@ -34,10 +35,10 @@ function buildSchema(iterator, filterFn = defaultFilter) {
         testSubscription: {
           type: GraphQLString,
           subscribe: withFilter(() => iterator, filterFn),
-          resolve: (root) => 'FIRST_EVENT',
+          resolve: () => 'FIRST_EVENT',
         },
       },
-    }),
+    } as any as GraphQLObjectTypeConfig<any, any>),
   });
 }
 
@@ -67,7 +68,7 @@ describe('GraphQL-JS asyncIterator', () => {
 
     expect(isAsyncIterable(results)).toBeTruthy();
 
-    const r = payload1.then((res) => {
+    payload1.then((res) => {
       expect(res.value.data.testSubscription).toEqual('FIRST_EVENT');
       done();
     });
