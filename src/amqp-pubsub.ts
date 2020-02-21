@@ -1,13 +1,14 @@
 import { PubSubEngine } from 'graphql-subscriptions/dist/pubsub-engine';
-import { PubSubAsyncIterator } from './pubsub-async-iterator';
 import {
   RabbitMqSingletonConnectionFactory,
   RabbitMqPublisher,
   RabbitMqSubscriber,
   IRabbitMqConnectionConfig,
-} from 'rabbitmq-pub-sub';
+} from 'sanar-rabbitmq-pub-sub';
+
 import { each } from 'async';
 import * as Logger from 'bunyan';
+import { PubSubAsyncIterator } from './pubsub-async-iterator';
 import { createChildLogger } from './child-logger';
 
 export interface PubSubRabbitMQBusOptions {
@@ -18,19 +19,24 @@ export interface PubSubRabbitMQBusOptions {
 }
 
 export class AmqpPubSub implements PubSubEngine {
+  private consumer: RabbitMqSubscriber;
 
-  private consumer: any;
-  private producer: any;
+  private producer: RabbitMqPublisher;
+
   private subscriptionMap: { [subId: number]: [string, Function] };
+
   private subsRefsMap: { [trigger: string]: Array<number> };
+
   private currentSubscriptionId: number;
+
   private triggerTransform: TriggerTransform;
+
   private unsubscribeChannelMap: any;
+
   private logger: Logger;
 
   constructor(options: PubSubRabbitMQBusOptions = {}) {
-
-    this.triggerTransform = options.triggerTransform || (trigger => trigger as string);
+    this.triggerTransform = options.triggerTransform || ((trigger) => trigger as string);
     const config = options.config || { host: '127.0.0.1', port: 5672 };
     const { logger } = options;
 
@@ -57,26 +63,25 @@ export class AmqpPubSub implements PubSubEngine {
     const triggerName: string = this.triggerTransform(trigger, options);
     const id = this.currentSubscriptionId++;
     this.subscriptionMap[id] = [triggerName, onMessage];
-    let refs = this.subsRefsMap[triggerName];
+    const refs = this.subsRefsMap[triggerName];
     if (refs && refs.length > 0) {
       const newRefs = [...refs, id];
       this.subsRefsMap[triggerName] = newRefs;
       this.logger.trace("subscriber exist, adding triggerName '%s' to saved list.", triggerName);
       return Promise.resolve(id);
-    } else {
-      return new Promise<number>((resolve, reject) => {
-        this.logger.trace("trying to subscribe to queue '%s'", triggerName);
-        this.consumer.subscribe(triggerName, (msg) => this.onMessage(triggerName, msg))
-          .then(disposer => {
-            this.subsRefsMap[triggerName] = [...(this.subsRefsMap[triggerName] || []), id];
-            this.unsubscribeChannelMap[id] = disposer;
-            return resolve(id);
-          }).catch(err => {
-            this.logger.error(err, "failed to recieve message from queue '%s'", triggerName);
-            reject(id);
-          });
-      });
     }
+    return new Promise<number>((resolve, reject) => {
+      this.logger.trace("trying to subscribe to queue '%s'", triggerName);
+      this.consumer.subscribe(triggerName, (msg) => this.onMessage(triggerName, msg))
+        .then((disposer) => {
+          this.subsRefsMap[triggerName] = [...(this.subsRefsMap[triggerName] || []), id];
+          this.unsubscribeChannelMap[id] = disposer;
+          return resolve(id);
+        }).catch((err) => {
+          this.logger.error(err, "failed to recieve message from queue '%s'", triggerName);
+          reject(id);
+        });
+    });
   }
 
   public unsubscribe(subId: number) {
@@ -85,7 +90,7 @@ export class AmqpPubSub implements PubSubEngine {
 
     if (!refs) {
       this.logger.error("There is no subscription of id '%s'", subId);
-      throw new Error(`There is no subscription of id "{subId}"`);
+      throw new Error('There is no subscription of id "{subId}"');
     }
 
     let newRefs;
@@ -93,7 +98,7 @@ export class AmqpPubSub implements PubSubEngine {
       newRefs = [];
       this.unsubscribeChannelMap[subId]().then(() => {
         this.logger.trace("cancelled channel from subscribing to queue '%s'", triggerName);
-      }).catch(err => {
+      }).catch((err) => {
         this.logger.error(err, "channel cancellation failed from queue '%j'", triggerName);
       });
     } else {
@@ -125,6 +130,7 @@ export class AmqpPubSub implements PubSubEngine {
     each(subscribers, (subId, cb) => {
       // TODO Support pattern based subscriptions
       const [triggerName, listener] = this.subscriptionMap[subId];
+      this.logger.trace('Sent message to trigger: [%s]', triggerName);
       listener(message);
       cb();
     });

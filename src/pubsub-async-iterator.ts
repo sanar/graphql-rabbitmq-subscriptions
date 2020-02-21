@@ -24,20 +24,26 @@ import * as Logger from 'bunyan';
  * A promise of a list of all subscription ids to the passed PubSubEngine.
  *
  * @property listening @type {boolean}
- * Whether or not the PubSubAsynIterator is in listening mode (responding to incoming PubSubEngine events and next() calls).
+ * Whether or not the PubSubAsynIterator is in listening mode
+ * (responding to incoming PubSubEngine events and next() calls).
  * Listening begins as true and turns to false once the return method is called.
  *
  * @property pubsub @type {PubSubEngine}
  * The PubSubEngine whose events will be observed.
  */
 export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
-
   private pullQueue: Function[];
+
   private pushQueue: any[];
+
   private eventsArray: string[];
+
   private allSubscribed: Promise<number[]>;
+
   private listening: boolean;
+
   private pubsub: PubSubEngine;
+
   private logger: Logger;
 
   constructor(pubsub: PubSubEngine, eventNames: string | string[], logger?: Logger) {
@@ -81,13 +87,13 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
       this.pullQueue.shift()({ value: event, done: false });
     } else {
       this.pushQueue.push(event);
-      this.logger.trace('push event (%j) to pushQueue (%j)', event, this.pullQueue);      
+      this.logger.trace('push event (%j) to pushQueue (%j)', event, this.pullQueue);
     }
   }
 
   private pullValue(): Promise<IteratorResult<any>> {
     this.logger.trace('[pullValue] ');
-    return new Promise((resolve => {
+    return new Promise(((resolve) => {
       if (this.pushQueue.length !== 0) {
         this.logger.trace('pluck last event from pushQueue (%j)', this.pushQueue);
         resolve({ value: this.pushQueue.shift(), done: false });
@@ -104,7 +110,7 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
       this.logger.trace('listening is true, it will unsubscribeAll, will empty all elements in pullQueue (%j)', this.pullQueue);
       this.listening = false;
       this.unsubscribeAll(subscriptionIds);
-      this.pullQueue.forEach(resolve => resolve({ value: undefined, done: true }));
+      this.pullQueue.forEach((resolve) => resolve({ value: undefined, done: true }));
       this.pullQueue.length = 0;
       this.pushQueue.length = 0;
     }
@@ -113,7 +119,7 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
   private subscribeAll() {
     this.logger.trace('[subscribeAll] ');
     return Promise.all(this.eventsArray.map(
-      eventName => {
+      (eventName) => {
         this.logger.trace('subscribing to eventName (%j) with onMessage as this.pushValue', eventName);
         return this.pubsub.subscribe(eventName, this.pushValue.bind(this), {});
       },
@@ -122,8 +128,11 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
 
   private unsubscribeAll(subscriptionIds: number[]) {
     this.logger.trace('unsubscribeAll to all subIds (%j)', subscriptionIds);
-    for (const subscriptionId of subscriptionIds) {
+    for (let i = 0, len = subscriptionIds.length; i < len; i++) {
+      const subscriptionId = subscriptionIds[i];
       this.pubsub.unsubscribe(subscriptionId);
     }
   }
 }
+
+export default { PubSubAsyncIterator };
